@@ -16,11 +16,15 @@ class PocketcastsJsonEncode(json.JSONEncoder):
             return data
 
         if isinstance(obj, Episode):
+            url = obj.url
+            if hasattr(obj, "episode_url"):
+                url = obj.episode_url
+
             data = {
                 "uuid": obj.uuid,
                 "title": obj.title,
                 "size": obj.size,
-                "url": obj.url,
+                "url": url,
                 "duration": obj.duration,
                 "file_type": obj.file_type,
                 "starred": obj.starred,
@@ -57,11 +61,21 @@ def cli(ctx, email: str, password: str):
 
 
 @cli.command("starred")
+@click.option("--use-pocketcasts-url", is_flag=True, help="Replace original url to episode with a link to pocketcasts.")
 @click.pass_context
-def starred(ctx):
+def starred(ctx, use_pocketcasts_url=False):
     """List starred episodes"""
     pc = PocketCast(ctx.obj["email"], ctx.obj["password"])
-    print(json.dumps(pc.starred, cls=PocketcastsJsonEncode, indent=4))
+
+    if use_pocketcasts_url:
+        data = pc.starred
+        for episode in data:
+            episode.__dict__["episode_url"] = "https://pca.st/episode/" + episode.uuid
+    else:
+        data = pc.starred
+
+    print(json.dumps(data, cls=PocketcastsJsonEncode, indent=4))
+
 
 @cli.command("categories")
 @click.pass_context
